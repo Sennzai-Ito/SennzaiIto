@@ -1,0 +1,789 @@
+```html
+<!DOCTYPE html>
+<html lang="ja" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spectre(um) Verse Life Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            spectre: {
+              dark: '#0a0d14',
+              panel: '#121824',
+              border: '#232d42',
+              accent: '#ef4444',
+              whiteblood: '#f8fafc',
+              mono: '#64748b',
+              vivid: '#ec4899'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbars and transition effects for monochrome simulation */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    .mono-filter {
+      filter: grayscale(100%) contrast(120%);
+      transition: filter 0.8s ease;
+    }
+    .partial-color-filter {
+      filter: grayscale(60%) sepia(20%);
+      transition: filter 0.8s ease;
+    }
+    .full-color-filter {
+      filter: grayscale(0%);
+      transition: filter 0.8s ease;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-200">
+
+  <!-- Header section -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-4 flex flex-wrap justify-between items-center gap-4 sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-slate-100 via-rose-500 to-indigo-600 flex items-center justify-center font-bold text-slate-950 shadow-lg shadow-rose-500/20">
+        S
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
+          Spectre(um) Verse <span class="text-xs px-2 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-800/50">Life Simulator</span>
+        </h1>
+        <p class="text-xs text-slate-400">阿頼耶識適合障害と「白い血」の群像劇</p>
+      </div>
+    </div>
+    
+    <div id="quick-stats-bar" class="hidden flex items-center gap-6 text-xs bg-slate-950/60 px-4 py-2 rounded-xl border border-slate-800">
+      <div><span class="text-slate-500">年齢:</span> <span id="header-age" class="font-bold text-slate-200">0歳</span></div>
+      <div><span class="text-slate-500">平均寿命:</span> <span id="header-life-expectancy" class="font-bold text-slate-200">--歳</span></div>
+      <div><span class="text-slate-500">種別:</span> <span id="header-role" class="font-bold text-slate-200">--</span></div>
+      <div><span class="text-slate-500">色彩視界:</span> <span id="header-color-depth" class="font-bold text-rose-400">100%</span></div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main id="app-container" class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6">
+
+    <!-- SETUP FORM -->
+    <div id="setup-screen" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl max-w-2xl mx-auto w-full my-auto">
+      <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold text-slate-100 mb-2">人生シミュレーションの設定</h2>
+        <p class="text-sm text-slate-400">生誕する時代・地域（生誕地）を選択し、新たな運命の歯車を回してください。</p>
+      </div>
+
+      <div class="space-y-6">
+        <!-- Era Selector -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2">1. 時代・世界観コード</label>
+          <select id="era-select" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-rose-500">
+            <option value="modern">【現代】中央色彩管理機構 (C.O.L.O.R. Standard)</option>
+            <option value="gothic">【19世紀末】ヨーロッパ・ゴシック＆錬金術 (Gothic Era)</option>
+            <option value="japan_retro">【幕末・大正】和風ファンタジー・御色彩陰陽寮 (Japanese Era)</option>
+            <option value="cyberpunk">【近未来】サイバーパンク・メガコーポ管理 (Cyberpunk Era)</option>
+          </select>
+          <p id="era-desc" class="text-xs text-slate-500 mt-2">現代国家規模の管理機関 C.O.L.O.R. がすべての国民を監視・定期適合検査する世界。</p>
+        </div>
+
+        <!-- Location Selector -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2">2. 生誕地の指定</label>
+          <select id="location-select" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-rose-500">
+            <!-- Dynamically populated -->
+          </select>
+          <div id="location-preview" class="mt-3 p-4 bg-slate-950/60 rounded-xl border border-slate-800 text-xs text-slate-400 space-y-1">
+            <div><span class="text-slate-500">平均寿命:</span> <span id="loc-life-exp" class="text-rose-400 font-bold">--</span></div>
+            <div><span class="text-slate-500">地域特性:</span> <span id="loc-trait" class="text-slate-300">--</span></div>
+            <div><span class="text-slate-500">勢力・環境:</span> <span id="loc-factions" class="text-slate-400">--</span></div>
+          </div>
+        </div>
+
+        <!-- Role Preference -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2">3. 宿命の選択（確率補正）</label>
+          <div class="grid grid-cols-3 gap-3" id="role-pref-group">
+            <button type="button" data-role-pref="random" class="role-pref-btn px-3 py-3 text-xs rounded-xl border border-rose-500 bg-rose-500/20 text-rose-200 font-bold text-center transition shadow-md ring-2 ring-rose-500/50">🎲 完全ランダム</button>
+            <button type="button" data-role-pref="subject" class="role-pref-btn px-3 py-3 text-xs rounded-xl border border-slate-800 bg-slate-950 text-slate-400 font-medium text-center hover:border-slate-700 transition">👁️ 被色体に固定/優遇</button>
+            <button type="button" data-role-pref="tuner" class="role-pref-btn px-3 py-3 text-xs rounded-xl border border-slate-800 bg-slate-950 text-slate-400 font-medium text-center hover:border-slate-700 transition">💉 調律官に固定/優遇</button>
+          </div>
+          <p id="role-pref-desc" class="text-xs text-rose-400 mt-2 italic font-semibold">※選択中: 【完全ランダム】確率に基づいて運命が決まります。</p>
+        </div>
+
+        <!-- Start Button -->
+        <button id="start-btn" class="w-full py-4 bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-rose-900/30 transition-all transform active:scale-95 text-center text-base cursor-pointer">
+          人生シミュレーションを開始する
+        </button>
+      </div>
+    </div>
+
+    <!-- SIMULATION MAIN SCREEN -->
+    <div id="simulation-screen" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- LEFT COLUMN: Status & Profile (4 cols) -->
+      <div class="lg:col-span-4 space-y-6">
+        
+        <!-- Profile Box -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+          <div id="profile-bg-glow" class="absolute -top-12 -right-12 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+          <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+            <div>
+              <span id="char-era-badge" class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold">現代</span>
+              <h3 id="char-name" class="text-lg font-bold text-slate-100">灰被りの被験者</h3>
+            </div>
+            <div id="char-role-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-950 border border-rose-800 text-rose-300">
+              被色体
+            </div>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div class="flex justify-between"><span class="text-slate-500">現在の年齢:</span> <span id="stat-age" class="font-bold text-slate-200">0 歳</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">生誕地:</span> <span id="stat-location" class="font-medium text-slate-300">--</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">地域平均寿命:</span> <span id="stat-life-expectancy" class="font-medium text-slate-300">-- 歳</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">属性 / 欠落・血質:</span> <span id="stat-sub-type" class="font-medium text-indigo-300">--</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">社会的立場:</span> <span id="stat-registration" class="font-medium text-slate-400">一般市民</span></div>
+          </div>
+
+          <!-- Color Visual Indicator -->
+          <div class="mt-5 pt-4 border-t border-slate-800/80">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">視界色彩解像度 (Color Depth)</span>
+              <span id="val-color-depth" class="font-bold text-rose-400">100%</span>
+            </div>
+            <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+              <div id="bar-color-depth" class="h-full bg-gradient-to-r from-slate-600 via-indigo-500 to-rose-500 transition-all duration-500" style="width: 100%"></div>
+            </div>
+
+            <!-- Heat Indicator -->
+            <div id="heat-container" class="mt-3">
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-400">阿頼耶識過熱度 (Heat / Risk)</span>
+                <span id="val-heat" class="font-bold text-amber-400">0%</span>
+              </div>
+              <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                <div id="bar-heat" class="h-full bg-gradient-to-r from-amber-500 to-red-600 transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Life Stats -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">生命ステータス</h4>
+
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">健康 (Health)</span>
+              <span id="val-health" class="font-bold text-emerald-400">80</span>
+            </div>
+            <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+              <div id="bar-health" class="h-full bg-emerald-500 transition-all duration-300" style="width: 80%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">幸福 (Happiness)</span>
+              <span id="val-happiness" class="font-bold text-sky-400">50</span>
+            </div>
+            <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+              <div id="bar-happiness" class="h-full bg-sky-500 transition-all duration-300" style="width: 50%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">知識 (Knowledge)</span>
+              <span id="val-knowledge" class="font-bold text-violet-400">10</span>
+            </div>
+            <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+              <div id="bar-knowledge" class="h-full bg-violet-500 transition-all duration-300" style="width: 10%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">人間関係 (Relations)</span>
+              <span id="val-relation" class="font-bold text-rose-400">50</span>
+            </div>
+            <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+              <div id="bar-relation" class="h-full bg-rose-500 transition-all duration-300" style="width: 50%"></div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-800 flex justify-between text-xs">
+            <span class="text-slate-400">資産 (Wealth):</span>
+            <span id="val-wealth" class="font-bold text-amber-300">0 G</span>
+          </div>
+        </div>
+
+        <!-- Controls Box -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">進行コントロール</h4>
+          <button id="next-year-btn" class="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-rose-950/50 active:scale-95 flex items-center justify-center gap-2">
+            <span>1年歳をとる</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+          </button>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="auto-run-btn" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition">
+              自動進行 (Auto)
+            </button>
+            <button id="reset-btn" class="py-2.5 bg-slate-950 hover:bg-slate-900 text-slate-400 font-semibold text-xs rounded-xl border border-slate-800 transition">
+              設定へ戻る
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Event Canvas & Life History Log (8 cols) -->
+      <div class="lg:col-span-8 space-y-6">
+
+        <!-- Active Event Box -->
+        <div id="event-card" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative min-h-[220px] flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span id="event-tag" class="text-xs font-semibold px-2.5 py-1 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">人生の軌跡</span>
+              <span id="event-age-label" class="text-xs font-bold text-slate-500">0歳時点</span>
+            </div>
+            <h3 id="event-title" class="text-xl font-bold text-slate-100 mb-3">物語の始まり</h3>
+            <p id="event-desc" class="text-sm text-slate-300 leading-relaxed">
+              あなたは静かにこの世界に産声をあげました。あなたの瞳にどんな色が映っているのか、まだ誰も知りません……。
+            </p>
+          </div>
+
+          <!-- Event Choices Container -->
+          <div id="event-options" class="mt-6 space-y-3">
+            <!-- Options dynamically generated -->
+          </div>
+        </div>
+
+        <!-- Life History Log -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col h-[380px]">
+          <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-800">
+            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+              <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              人生のログ・阿頼耶識記録器
+            </h3>
+            <span class="text-xs text-slate-500" id="log-count">0 件の記録</span>
+          </div>
+
+          <div id="log-container" class="flex-1 overflow-y-auto space-y-2 pr-2 text-xs font-mono">
+            <div class="text-slate-500 italic">ここに人生の選択と出来事が刻まれます...</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- SUMMARY SCREEN -->
+    <div id="summary-screen" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl max-w-2xl mx-auto w-full my-auto space-y-6">
+      <div class="text-center">
+        <span class="text-xs font-bold text-rose-400 uppercase tracking-widest">End of Life Summary</span>
+        <h2 class="text-2xl font-bold text-slate-100 mt-1">人生の終焉</h2>
+        <p id="summary-cause" class="text-sm text-slate-400 mt-2">天寿を全うして静かに息を引き取りました。</p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800 text-center text-xs">
+        <div>
+          <div class="text-slate-500">享年</div>
+          <div id="summary-final-age" class="text-lg font-bold text-slate-100 mt-1">0 歳</div>
+        </div>
+        <div>
+          <div class="text-slate-500">平均寿命比</div>
+          <div id="summary-life-ratio" class="text-lg font-bold text-emerald-400 mt-1">100%</div>
+        </div>
+        <div>
+          <div class="text-slate-500">最終視界解像度</div>
+          <div id="summary-color-depth" class="text-lg font-bold text-rose-400 mt-1">100%</div>
+        </div>
+        <div>
+          <div class="text-slate-500">最終資産</div>
+          <div id="summary-wealth" class="text-lg font-bold text-amber-300 mt-1">0 G</div>
+        </div>
+      </div>
+
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+        <h4 class="text-xs font-bold text-slate-300 mb-2">人生の総括評</h4>
+        <p id="summary-review" class="text-xs text-slate-400 leading-relaxed">
+          波乱に満ちたスペクトルの中で生き抜いた素晴らしい生涯でした。
+        </p>
+      </div>
+
+      <button id="restart-btn" class="w-full py-3.5 bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-rose-950/50">
+        新しい運命（人生）を開始する
+      </button>
+    </div>
+
+  </main>
+
+  <!-- JavaScript Logic -->
+  <script>
+    const ERA_DATA = {
+      modern: {
+        id: "modern",
+        name: "【現代】中央色彩管理機構 (C.O.L.O.R. Standard)",
+        orgName: "中央色彩管理機構 (C.O.L.O.R.)",
+        subjectTerm: "灰被り（被色体）",
+        tunerTerm: "ペインター（調律官）",
+        chromaTerm: "有色者（クロマ）",
+        medicineName: "カラー・パッチ",
+        unregisteredTerm: "野良",
+        desc: "現代国家規模の管理機関 C.O.L.O.R. がすべての国民を監視・定期適合検査する世界。",
+        locations: [
+          { id: "capital_center", name: "中央色彩管理特区（首都）", baseLife: 82, trait: "機構の厳重な監視下。適合検査が厳格だが治安は安定。", factions: "C.O.L.O.R.本局" },
+          { id: "slum_district", name: "第七スラム街（旧市街）", baseLife: 62, trait: "野良の灰被りが潜伏する暗がり。闇市や粗悪調律薬が横行。", factions: "無色同盟 / 灰の家" },
+          { id: "suburb_zone", name: "一般居住地方都市", baseLife: 76, trait: "静かな田舎町。発症を隠すため市販薬に頼る住人が多い。", factions: "民間クリニック" },
+          { id: "tech_island", name: "阿頼耶識先端医療特区", baseLife: 88, trait: "高度な脳科学研究都市。臨床実験や特異体質の売買が密かに行われる。", factions: "イリス・ラボ" }
+        ]
+      },
+      gothic: {
+        id: "gothic",
+        name: "【19世紀末】ヨーロッパ・ゴシック＆錬金術 (Gothic Era)",
+        orgName: "王立公衆衛生院・色彩監理局",
+        subjectTerm: "デッサン（素描者）",
+        tunerTerm: "パレット（調律官）",
+        chromaTerm: "市民（有色者）",
+        medicineName: "調律血清瓶（ヴィアル）",
+        unregisteredTerm: "フォグ・バウンド",
+        desc: "石畳とガス灯の霧深い都市。調律官の血が貴族たちの密室サロンで高値取引される。",
+        locations: [
+          { id: "london_fog", name: "霧の都ロンドン（貧民街）", baseLife: 55, trait: "煙霧に覆われた街。失われた色を求めて密室サロンに耽溺する。", factions: "ロンドン白霧倶楽部" },
+          { id: "paris_art", name: "パリ・モンマルトル", baseLife: 68, trait: "芸術家と詩人の街。血と色彩の快楽に身を投じるモデルと絵描きたち。", factions: "モンマルトル・アトリエ派" },
+          { id: "germany_blackforest", name: "黒森（シュヴァルツヴァルト）別邸", baseLife: 60, trait: "錬金術と初期医学の研究拠点。劇薬『リリスの血』の伝承が残る。", factions: "黒森・錬金術研究会" }
+        ]
+      },
+      japan_retro: {
+        id: "japan_retro",
+        name: "【幕末・大正】和風ファンタジー・御色彩陰陽寮 (Japanese Era)",
+        orgName: "御色彩陰陽寮 / 白血奉行所",
+        subjectTerm: "墨憑き（被色体）",
+        tunerTerm: "白血の薬師 / 御用絵師",
+        chromaTerm: "一般町人",
+        medicineName: "墨消し散",
+        unregisteredTerm: "影被り",
+        desc: "薄暗い畳敷きの部屋と襖。色彩の喪失は妖怪変化や「祟り」として捉えられている。",
+        locations: [
+          { id: "edo_center", name: "帝都・陰陽寮本陣周辺", baseLife: 65, trait: "奉行所の厳しく厳しい取締り。御用絵師が陰で幕府を支える。", factions: "白血奉行所" },
+          { id: "red_light", name: "吉原・紅墨遊郭街", baseLife: 50, trait: "秘蔵された白血の薬師が、大金を払う墨憑きの客へ血のお色直しを施す。", factions: "紅墨遊郭" },
+          { id: "hidden_village", name: "深山幽谷の隠れ里", baseLife: 70, trait: "世俗を離れた隠世。古くからのお色直しの儀式を守り続ける。", factions: "黒墨衆" }
+        ]
+      },
+      cyberpunk: {
+        id: "cyberpunk",
+        name: "【近未来】サイバーパンク・メガコーポ管理 (Cyberpunk Era)",
+        orgName: "メガコーポ色彩管理特許部門",
+        subjectTerm: "#000000（ヌル）",
+        tunerTerm: "生体カラー・モジュール",
+        chromaTerm: "有色市民",
+        medicineName: "アクロマ・パッチ",
+        unregisteredTerm: "未契約コード",
+        desc: "脳内阿頼耶識チップのバグ。企業契約により「調律血清」が給与として与えられる。",
+        locations: [
+          { id: "corp_tower", name: "メガコーポ社有都市アッパーゾーン", baseLife: 92, trait: "高給契約社員のみが住む楽園。完璧なパッチと血清が定期補給される。", factions: "Chromatix Corp." },
+          { id: "net_slum", name: "スラム・ネオン下層街", baseLife: 48, trait: "違法チップと粗悪モジュールが流出する混沌領域。", factions: "ダークWeb・ストリートギャング" }
+        ]
+      }
+    };
+
+    const MASTER_EVENTS = [
+      {
+        id: "onset_degrader",
+        title: "世界から色が抜け落ちる感覚",
+        category: "発症",
+        minAge: 10, maxAge: 25,
+        condition: (sim) => sim.role === 'subject' && !sim.verseStats.isDiagnosed,
+        description: (sim) => `朝、鏡を見ると自分の瞳の色がグレーに白濁している。街の風景から徐々に色彩が失われ、激しい目眩が襲った……。あなたは『${sim.era.subjectTerm}』として発症したようだ。`,
+        options: [
+          {
+            text: `市販薬『${sim.era.medicineName}』を買って密かに誤魔化す`,
+            effect: (stats, sim) => {
+              sim.log(`市販薬で一時的に色を取り戻したが、喉が激しく渇き、不完全な解像度しか戻らない。`);
+              stats.wealth -= 20;
+              sim.verseStats.colorDepth = 50;
+              sim.verseStats.isDiagnosed = true;
+              sim.verseStats.isUnregistered = true;
+            }
+          },
+          {
+            text: `【${sim.era.orgName}】へ自首して適合検査を受ける`,
+            effect: (stats, sim) => {
+              sim.log(`【${sim.era.orgName}】に正式登録された。監視下に入るが、最低限の血清配給が約束される。`);
+              sim.verseStats.isDiagnosed = true;
+              sim.verseStats.isUnregistered = false;
+              sim.verseStats.colorDepth = 70;
+              stats.relation -= 10;
+            }
+          }
+        ]
+      },
+      {
+        id: "overheat_encounter",
+        title: "阿頼耶識の過熱と白き吐息",
+        category: "危機・出会い",
+        minAge: 15, maxAge: 70,
+        condition: (sim) => sim.role === 'subject' && sim.verseStats.isDiagnosed && (sim.verseStats.heat > 50 || sim.verseStats.colorDepth < 30),
+        description: (sim) => `頭が焼き切れるような過熱（高熱）とノイズ混ざりの白黒視界。路地裏で倒れ込んでいると、通りかかった人物から甘い「白い血」の香気が漂ってきた……！`,
+        options: [
+          {
+            text: "理性を失い、相手の手首に噛み付く（レベル1：経口吸血）",
+            effect: (stats, sim) => {
+              sim.log(`熱い血が喉を潤した瞬間、脳内で色彩が爆発（カラー・フラッシュ）！ 圧倒的な多幸感に膝が崩れ落ちた。`);
+              sim.verseStats.colorDepth = 95;
+              sim.verseStats.heat = 10;
+              stats.health += 20;
+              stats.happiness += 30;
+              sim.verseStats.partnerRelation += 30;
+            }
+          },
+          {
+            text: "必死に理性を保ち、精神安定剤を飲む",
+            effect: (stats, sim) => {
+              sim.log(`薬で無理やり過熱を鎮めた。狂気は治まったが、感情まで凍りつくような冷たさが残る。`);
+              stats.health -= 15;
+              stats.happiness -= 20;
+              sim.verseStats.heat -= 30;
+            }
+          }
+        ]
+      },
+      {
+        id: "tuner_duty",
+        title: "渇望する眼差しと血の打診",
+        category: "調律官の葛藤",
+        minAge: 16, maxAge: 65,
+        condition: (sim) => sim.role === 'tuner',
+        description: (sim) => `あなたの目の前で、絶望に震える『${sim.era.subjectTerm}』が膝を折り、灰色の瞳であなたを見上げている。あなたの「白い血」だけが彼（彼女）を救える。`,
+        options: [
+          {
+            text: "腕を差し出し、血を分ける（バックフロー受容）",
+            effect: (stats, sim) => {
+              sim.log(`相手に手首を噛ませ、血を与えた。相手の瞳に鮮やかな色彩が戻るが、バックフローのノイズと激痛があなたの脳を刺す。`);
+              stats.health -= 10;
+              stats.happiness += 20;
+              sim.verseStats.partnerRelation += 25;
+            }
+          },
+          {
+            text: "冷酷に背を向けて立ち去る",
+            effect: (stats, sim) => {
+              sim.log(`立ち去った。自分の身体を守るための当然の防衛だが、胸に重い罪悪感が残った。`);
+              stats.happiness -= 15;
+              stats.relation -= 10;
+            }
+          }
+        ]
+      },
+      {
+        id: "level3_marking",
+        title: "不可逆の誓い（レベル3：フル・バイパス）",
+        category: "運命の交雑",
+        minAge: 18, maxAge: 80,
+        condition: (sim) => sim.verseStats.partnerRelation >= 70 && !sim.verseStats.isMarked,
+        description: (sim) => `専属のパートナーが、熱を帯びたあなたの首筋（ポート）に指を滑らせる。「二度と他の誰の血も（他の誰も）受け付けない身体にしてあげる」`,
+        options: [
+          {
+            text: "全存在を委ねて体液交雑を受け入れる",
+            effect: (stats, sim) => {
+              sim.log(`ポートが開口し、深部体液交雑が完了した。視界は恒久的なフルカラーに固定されたが、この人なしでは生きられない身体になった。`);
+              sim.verseStats.colorDepth = 100;
+              sim.verseStats.isMarked = true;
+              stats.happiness += 40;
+              stats.relation = Math.max(10, stats.relation - 20);
+            }
+          }
+        ]
+      },
+      {
+        id: "study_academy",
+        title: "知識の研鑽と研究",
+        category: "日常",
+        minAge: 12, maxAge: 30,
+        description: (sim) => `阿頼耶識（イグジシウム）の構造や社会史について深く学ぶ機会を得た。`,
+        options: [
+          {
+            text: "学問に没頭する",
+            effect: (stats, sim) => {
+              sim.log(`知識が深まり、世界の構造への理解が深まった。`);
+              stats.knowledge += 20;
+              stats.happiness += 5;
+            }
+          }
+        ]
+      },
+      {
+        id: "work_and_wealth",
+        title: "事業と労働の果て",
+        category: "仕事",
+        minAge: 20, maxAge: 65,
+        description: (sim) => `日々の仕事に打ち込み、資産を築く機会が巡ってきた。`,
+        options: [
+          {
+            text: "堅実に働く",
+            effect: (stats, sim) => {
+              sim.log(`相応の報酬を得た。生活基盤が安定する。`);
+              stats.wealth += 50;
+              stats.health -= 5;
+            }
+          },
+          {
+            text: "危険な裏仕事に手を染める",
+            effect: (stats, sim) => {
+              sim.log(`大金を手に入れたが、危険な組織から目を付けられた。`);
+              stats.wealth += 150;
+              stats.health -= 15;
+              stats.relation -= 15;
+            }
+          }
+        ]
+      }
+    ];
+
+    class SpectreLifeSimulator {
+      constructor(config) {
+        this.eraKey = config.eraKey || 'modern';
+        this.era = ERA_DATA[this.eraKey];
+        
+        this.location = config.location || this.era.locations[0];
+        this.lifeExpectancy = this.location.baseLife + Math.floor(Math.random() * 7 - 3);
+
+        this.age = 0;
+        this.isAlive = true;
+        this.causeOfDeath = "";
+        this.history = [];
+
+        this.role = this.determineRole(config.rolePref);
+        
+        this.stats = {
+          health: 85,
+          happiness: 60,
+          knowledge: 10,
+          relation: 50,
+          wealth: 10
+        };
+
+        this.verseStats = {
+          colorDepth: 100,
+          heat: 0,
+          isDiagnosed: false,
+          isUnregistered: false,
+          isMarked: false,
+          partnerRelation: 0,
+          subType: this.determineSubType()
+        };
+
+        this.log(`【生誕】${this.era.name} の「${this.location.name}」に誕生。地域平均寿命: ${this.lifeExpectancy}歳`);
+        this.log(`【宿命】種別: 『${this.getRoleLabel()}』 (${this.verseStats.subType})`);
+      }
+
+      determineRole(pref) {
+        const r = Math.random();
+        if (pref === 'subject') return r < 0.85 ? 'subject' : 'tuner';
+        if (pref === 'tuner') return r < 0.85 ? 'tuner' : 'subject';
+        
+        if (r < 0.55) return 'subject';
+        if (r < 0.85) return 'tuner';
+        return 'chroma';
+      }
+
+      determineSubType() {
+        if (this.role === 'subject') {
+          const types = ['寒色欠損', '暖色欠損', '中間色欠損', 'ノイズ型無色', '虹彩逆転種'];
+          return types[Math.floor(Math.random() * types.length)];
+        } else if (this.role === 'tuner') {
+          const codes = ['レッド', 'オレンジ', 'イエロー', 'グリーン', 'ブルー', 'インディゴ', 'ヴァイオレット', 'リリスの血'];
+          return "血質: " + codes[Math.floor(Math.random() * codes.length)];
+        }
+        return "健常（有色者）";
+      }
+
+      getRoleLabel() {
+        if (this.role === 'subject') return this.era.subjectTerm;
+        if (this.role === 'tuner') return this.era.tunerTerm;
+        return this.era.chromaTerm;
+      }
+
+      log(msg) {
+        this.history.push({ age: this.age, text: msg });
+      }
+
+      nextYear() {
+        if (!this.isAlive) return;
+
+        this.age++;
+        
+        if (this.age > this.lifeExpectancy - 15) {
+          this.stats.health -= Math.floor(Math.random() * 4) + 2;
+        }
+
+        if (this.role === 'subject' && this.verseStats.isDiagnosed && !this.verseStats.isMarked) {
+          this.verseStats.colorDepth = Math.max(0, this.verseStats.colorDepth - 6);
+          this.verseStats.heat = Math.min(100, this.verseStats.heat + 8);
+        }
+
+        this.checkLifeStatus();
+      }
+
+      checkLifeStatus() {
+        if (this.stats.health <= 0) {
+          this.isAlive = false;
+          this.causeOfDeath = "身体不調・阿頼耶識の不全または衰弱";
+        } else if (this.verseStats.heat >= 100) {
+          this.isAlive = false;
+          this.causeOfDeath = "阿頼耶識の過熱限界突破による色蝕種（暴走）化と処分";
+        } else if (this.age >= this.lifeExpectancy + 15) {
+          this.isAlive = false;
+          this.causeOfDeath = "天寿を全うした老衰";
+        } else if (this.age >= this.lifeExpectancy) {
+          const chance = (this.age - this.lifeExpectancy + 1) * 0.15;
+          if (Math.random() < chance) {
+            this.isAlive = false;
+            this.causeOfDeath = "老衰および寿命";
+          }
+        }
+      }
+
+      getAvailableEvents() {
+        return MASTER_EVENTS.filter(e => {
+          const minA = e.minAge || 0;
+          const maxA = e.maxAge || 120;
+          if (this.age < minA || this.age > maxA) return false;
+          if (e.condition && !e.condition(this)) return false;
+          return true;
+        });
+      }
+    }
+
+    let currentSim = null;
+    let autoRunTimer = null;
+    let selectedRolePref = 'random';
+
+    const eraSelect = document.getElementById('era-select');
+    const locationSelect = document.getElementById('location-select');
+
+    const setupScreen = document.getElementById('setup-screen');
+    const simScreen = document.getElementById('simulation-screen');
+    const summaryScreen = document.getElementById('summary-screen');
+    const quickStatsBar = document.getElementById('quick-stats-bar');
+
+    function updateLocationOptions() {
+      const eraKey = eraSelect.value;
+      const era = ERA_DATA[eraKey];
+      if (!era) return;
+
+      document.getElementById('era-desc').textContent = era.desc;
+
+      locationSelect.innerHTML = '<option value="random">🎲 ランダム（運命に任せる）</option>';
+      era.locations.forEach(loc => {
+        const opt = document.createElement('option');
+        opt.value = loc.id;
+        opt.textContent = `${loc.name} (平均寿命: ${loc.baseLife}歳)`;
+        locationSelect.appendChild(opt);
+      });
+
+      updateLocationPreview();
+    }
+
+    function updateLocationPreview() {
+      const eraKey = eraSelect.value;
+      const era = ERA_DATA[eraKey];
+      const locId = locationSelect.value;
+
+      if (locId === 'random') {
+        document.getElementById('loc-life-exp').textContent = "地域に応じた平均 (約 50〜90 歳)";
+        document.getElementById('loc-trait').textContent = "選ばれた生誕地の特性が反映されます";
+        document.getElementById('loc-factions').textContent = "運命に委ねられます";
+      } else {
+        const loc = era.locations.find(l => l.id === locId);
+        if (loc) {
+          document.getElementById('loc-life-exp').textContent = `${loc.baseLife} 歳`;
+          document.getElementById('loc-trait').textContent = loc.trait;
+          document.getElementById('loc-factions').textContent = loc.factions;
+        }
+      }
+    }
+
+    // Role preference button selection handler
+    document.querySelectorAll('.role-pref-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.role-pref-btn').forEach(b => {
+          b.classList.remove('border-rose-500', 'bg-rose-500/20', 'text-rose-200', 'font-bold', 'ring-2', 'ring-rose-500/50', 'shadow-md');
+          b.classList.add('border-slate-800', 'bg-slate-950', 'text-slate-400', 'font-medium');
+        });
+
+        const target = e.currentTarget;
+        target.classList.add('border-rose-500', 'bg-rose-500/20', 'text-rose-200', 'font-bold', 'ring-2', 'ring-rose-500/50', 'shadow-md');
+        target.classList.remove('border-slate-800', 'bg-slate-950', 'text-slate-400', 'font-medium');
+
+        selectedRolePref = target.dataset.rolePref;
+
+        const descEl = document.getElementById('role-pref-desc');
+        if (selectedRolePref === 'random') {
+          descEl.textContent = "※選択中: 【完全ランダム】確率に基づいて運命が決まります。";
+        } else if (selectedRolePref === 'subject') {
+          descEl.textContent = "※選択中: 【被色体固定/優遇】『灰被り』として高確率で発症します。";
+        } else if (selectedRolePref === 'tuner') {
+          descEl.textContent = "※選択中: 【調律官固定/優遇】『白い血』を持つ調律官として誕生します。";
+        }
+      });
+    });
+
+    eraSelect.addEventListener('change', updateLocationOptions);
+    locationSelect.addEventListener('change', updateLocationPreview);
+
+    // Guaranteed Start Handler
+    document.getElementById('start-btn').addEventListener('click', () => {
+      const eraKey = eraSelect.value;
+      const era = ERA_DATA[eraKey];
+      let selectedLoc = null;
+
+      if (locationSelect.value === 'random') {
+        selectedLoc = era.locations[Math.floor(Math.random() * era.locations.length)];
+      } else {
+        selectedLoc = era.locations.find(l => l.id === locationSelect.value);
+        if (!selectedLoc) selectedLoc = era.locations[0];
+      }
+
+      currentSim = new SpectreLifeSimulator({
+        eraKey: eraKey,
+        location: selectedLoc,
+        rolePref: selectedRolePref
+      });
+
+      // Show Main Simulation Screen
+      setupScreen.classList.add('hidden');
+      summaryScreen.classList.add('hidden');
+      simScreen.classList.remove('hidden');
+      quickStatsBar.classList.remove('hidden');
+
+      updateUI();
+    });
+
+    // Ensure options are generated on initial load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateLocationOptions();
+    });
+    // Fallback invocation for immediate execution
+    updateLocationOptions();
+  </script>
+</body>
+</html>
+```
