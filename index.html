@@ -29,7 +29,7 @@
     }
   </script>
   <style>
-    /* Custom scrollbars and transition effects for monochrome simulation */
+    /* Custom scrollbars and transition effects */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -41,21 +41,12 @@
       background: #334155;
       border-radius: 3px;
     }
-    .mono-filter {
-      filter: grayscale(100%) contrast(120%);
-      transition: filter 0.8s ease;
-    }
-    .partial-color-filter {
-      filter: grayscale(60%) sepia(20%);
-      transition: filter 0.8s ease;
-    }
-    .full-color-filter {
-      filter: grayscale(0%);
-      transition: filter 0.8s ease;
+    .view-filter-container {
+      transition: filter 0.8s ease-in-out;
     }
   </style>
 </head>
-<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-200">
+<body id="app-body" class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-200 view-filter-container">
 
   <!-- Header section -->
   <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-4 flex flex-wrap justify-between items-center gap-4 sticky top-0 z-50">
@@ -71,7 +62,7 @@
       </div>
     </div>
     
-    <div id="quick-stats-bar" class="hidden flex items-center gap-6 text-xs bg-slate-950/60 px-4 py-2 rounded-xl border border-slate-800">
+    <div id="quick-stats-bar" class="hidden flex flex-wrap items-center gap-4 md:gap-6 text-xs bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-800 shadow-inner">
       <div><span class="text-slate-500">年齢:</span> <span id="header-age" class="font-bold text-slate-200">0歳</span></div>
       <div><span class="text-slate-500">平均寿命:</span> <span id="header-life-expectancy" class="font-bold text-slate-200">--歳</span></div>
       <div><span class="text-slate-500">種別:</span> <span id="header-role" class="font-bold text-slate-200">--</span></div>
@@ -80,10 +71,10 @@
   </header>
 
   <!-- Main Container -->
-  <main id="app-container" class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6">
+  <main id="app-container" class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 flex flex-col justify-center gap-6">
 
     <!-- SETUP FORM -->
-    <div id="setup-screen" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl max-w-2xl mx-auto w-full my-auto">
+    <div id="setup-screen" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl max-w-2xl mx-auto w-full my-auto transition-all">
       <div class="text-center mb-8">
         <h2 class="text-2xl font-bold text-slate-100 mb-2">人生シミュレーションの設定</h2>
         <p class="text-sm text-slate-400">生誕する時代・地域（生誕地）を選択し、新たな運命の歯車を回してください。</p>
@@ -93,22 +84,22 @@
         <!-- Era Selector -->
         <div>
           <label class="block text-sm font-medium text-slate-300 mb-2">1. 時代・世界観コード</label>
-          <select id="era-select" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-rose-500">
+          <select id="era-select" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-rose-500 cursor-pointer">
             <option value="modern">【現代】中央色彩管理機構 (C.O.L.O.R. Standard)</option>
             <option value="gothic">【19世紀末】ヨーロッパ・ゴシック＆錬金術 (Gothic Era)</option>
             <option value="japan_retro">【幕末・大正】和風ファンタジー・御色彩陰陽寮 (Japanese Era)</option>
             <option value="cyberpunk">【近未来】サイバーパンク・メガコーポ管理 (Cyberpunk Era)</option>
           </select>
-          <p id="era-desc" class="text-xs text-slate-500 mt-2">現代国家規模の管理機関 C.O.L.O.R. がすべての国民を監視・定期適合検査する世界。</p>
+          <p id="era-desc" class="text-xs text-slate-400 mt-2">現代国家規模の管理機関 C.O.L.O.R. がすべての国民を監視・定期適合検査する世界。</p>
         </div>
 
         <!-- Location Selector -->
         <div>
           <label class="block text-sm font-medium text-slate-300 mb-2">2. 生誕地の指定</label>
-          <select id="location-select" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-rose-500">
+          <select id="location-select" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-rose-500 cursor-pointer">
             <!-- Dynamically populated -->
           </select>
-          <div id="location-preview" class="mt-3 p-4 bg-slate-950/60 rounded-xl border border-slate-800 text-xs text-slate-400 space-y-1">
+          <div id="location-preview" class="mt-3 p-4 bg-slate-950/60 rounded-xl border border-slate-800 text-xs space-y-1">
             <div><span class="text-slate-500">平均寿命:</span> <span id="loc-life-exp" class="text-rose-400 font-bold">--</span></div>
             <div><span class="text-slate-500">地域特性:</span> <span id="loc-trait" class="text-slate-300">--</span></div>
             <div><span class="text-slate-500">勢力・環境:</span> <span id="loc-factions" class="text-slate-400">--</span></div>
@@ -119,15 +110,21 @@
         <div>
           <label class="block text-sm font-medium text-slate-300 mb-2">3. 宿命の選択（確率補正）</label>
           <div class="grid grid-cols-3 gap-3" id="role-pref-group">
-            <button type="button" data-role-pref="random" class="role-pref-btn px-3 py-3 text-xs rounded-xl border border-rose-500 bg-rose-500/20 text-rose-200 font-bold text-center transition shadow-md ring-2 ring-rose-500/50">🎲 完全ランダム</button>
-            <button type="button" data-role-pref="subject" class="role-pref-btn px-3 py-3 text-xs rounded-xl border border-slate-800 bg-slate-950 text-slate-400 font-medium text-center hover:border-slate-700 transition">👁️ 被色体に固定/優遇</button>
-            <button type="button" data-role-pref="tuner" class="role-pref-btn px-3 py-3 text-xs rounded-xl border border-slate-800 bg-slate-950 text-slate-400 font-medium text-center hover:border-slate-700 transition">💉 調律官に固定/優遇</button>
+            <button type="button" data-role-pref="random" class="role-pref-btn active-pref px-3 py-3 text-xs rounded-xl border border-rose-500 bg-rose-500/20 text-rose-200 font-bold text-center transition shadow-md ring-2 ring-rose-500/50">
+              🎲 完全ランダム
+            </button>
+            <button type="button" data-role-pref="subject" class="role-pref-btn px-3 py-3 text-xs rounded-xl border border-slate-800 bg-slate-950 text-slate-400 font-medium text-center hover:border-slate-700 transition">
+              👁️ 被色体に固定/優遇
+            </button>
+            <button type="button" data-role-pref="tuner" class="role-pref-btn px-3 py-3 text-xs rounded-xl border border-slate-800 bg-slate-950 text-slate-400 font-medium text-center hover:border-slate-700 transition">
+              💉 調律官に固定/優遇
+            </button>
           </div>
           <p id="role-pref-desc" class="text-xs text-rose-400 mt-2 italic font-semibold">※選択中: 【完全ランダム】確率に基づいて運命が決まります。</p>
         </div>
 
         <!-- Start Button -->
-        <button id="start-btn" class="w-full py-4 bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-rose-900/30 transition-all transform active:scale-95 text-center text-base cursor-pointer">
+        <button id="start-btn" type="button" class="w-full py-4 bg-gradient-to-r from-rose-600 via-rose-500 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-rose-900/30 transition-all transform active:scale-95 text-center text-base cursor-pointer">
           人生シミュレーションを開始する
         </button>
       </div>
@@ -191,20 +188,20 @@
           <div>
             <div class="flex justify-between text-xs mb-1">
               <span class="text-slate-400">健康 (Health)</span>
-              <span id="val-health" class="font-bold text-emerald-400">80</span>
+              <span id="val-health" class="font-bold text-emerald-400">85</span>
             </div>
             <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-              <div id="bar-health" class="h-full bg-emerald-500 transition-all duration-300" style="width: 80%"></div>
+              <div id="bar-health" class="h-full bg-emerald-500 transition-all duration-300" style="width: 85%"></div>
             </div>
           </div>
 
           <div>
             <div class="flex justify-between text-xs mb-1">
               <span class="text-slate-400">幸福 (Happiness)</span>
-              <span id="val-happiness" class="font-bold text-sky-400">50</span>
+              <span id="val-happiness" class="font-bold text-sky-400">60</span>
             </div>
             <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-              <div id="bar-happiness" class="h-full bg-sky-500 transition-all duration-300" style="width: 50%"></div>
+              <div id="bar-happiness" class="h-full bg-sky-500 transition-all duration-300" style="width: 60%"></div>
             </div>
           </div>
 
@@ -230,22 +227,22 @@
 
           <div class="pt-2 border-t border-slate-800 flex justify-between text-xs">
             <span class="text-slate-400">資産 (Wealth):</span>
-            <span id="val-wealth" class="font-bold text-amber-300">0 G</span>
+            <span id="val-wealth" class="font-bold text-amber-300">10 G</span>
           </div>
         </div>
 
         <!-- Controls Box -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
           <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">進行コントロール</h4>
-          <button id="next-year-btn" class="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-rose-950/50 active:scale-95 flex items-center justify-center gap-2">
+          <button id="next-year-btn" type="button" class="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-rose-950/50 active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
             <span>1年歳をとる</span>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
           </button>
           <div class="grid grid-cols-2 gap-2">
-            <button id="auto-run-btn" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition">
+            <button id="auto-run-btn" type="button" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition cursor-pointer">
               自動進行 (Auto)
             </button>
-            <button id="reset-btn" class="py-2.5 bg-slate-950 hover:bg-slate-900 text-slate-400 font-semibold text-xs rounded-xl border border-slate-800 transition">
+            <button id="reset-btn" type="button" class="py-2.5 bg-slate-950 hover:bg-slate-900 text-slate-400 font-semibold text-xs rounded-xl border border-slate-800 transition cursor-pointer">
               設定へ戻る
             </button>
           </div>
@@ -286,7 +283,7 @@
           </div>
 
           <div id="log-container" class="flex-1 overflow-y-auto space-y-2 pr-2 text-xs font-mono">
-            <div class="text-slate-500 italic">ここに人生の選択と出来事が刻まれます...</div>
+            <!-- Logs dynamically populated -->
           </div>
         </div>
 
@@ -328,14 +325,14 @@
         </p>
       </div>
 
-      <button id="restart-btn" class="w-full py-3.5 bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-rose-950/50">
+      <button id="restart-btn" type="button" class="w-full py-3.5 bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-rose-950/50 cursor-pointer">
         新しい運命（人生）を開始する
       </button>
     </div>
 
   </main>
 
-  <!-- JavaScript Logic -->
+  <!-- JavaScript Simulation Core Logic -->
   <script>
     const ERA_DATA = {
       modern: {
@@ -417,7 +414,7 @@
             text: `市販薬『${sim.era.medicineName}』を買って密かに誤魔化す`,
             effect: (stats, sim) => {
               sim.log(`市販薬で一時的に色を取り戻したが、喉が激しく渇き、不完全な解像度しか戻らない。`);
-              stats.wealth -= 20;
+              stats.wealth = Math.max(0, stats.wealth - 20);
               sim.verseStats.colorDepth = 50;
               sim.verseStats.isDiagnosed = true;
               sim.verseStats.isUnregistered = true;
@@ -440,7 +437,7 @@
         title: "阿頼耶識の過熱と白き吐息",
         category: "危機・出会い",
         minAge: 15, maxAge: 70,
-        condition: (sim) => sim.role === 'subject' && sim.verseStats.isDiagnosed && (sim.verseStats.heat > 50 || sim.verseStats.colorDepth < 30),
+        condition: (sim) => sim.role === 'subject' && sim.verseStats.isDiagnosed && (sim.verseStats.heat > 50 || sim.verseStats.colorDepth < 35),
         description: (sim) => `頭が焼き切れるような過熱（高熱）とノイズ混ざりの白黒視界。路地裏で倒れ込んでいると、通りかかった人物から甘い「白い血」の香気が漂ってきた……！`,
         options: [
           {
@@ -460,7 +457,7 @@
               sim.log(`薬で無理やり過熱を鎮めた。狂気は治まったが、感情まで凍りつくような冷たさが残る。`);
               stats.health -= 15;
               stats.happiness -= 20;
-              sim.verseStats.heat -= 30;
+              sim.verseStats.heat = Math.max(0, sim.verseStats.heat - 30);
             }
           }
         ]
@@ -497,8 +494,8 @@
         title: "不可逆の誓い（レベル3：フル・バイパス）",
         category: "運命の交雑",
         minAge: 18, maxAge: 80,
-        condition: (sim) => sim.verseStats.partnerRelation >= 70 && !sim.verseStats.isMarked,
-        description: (sim) => `専属のパートナーが、熱を帯びたあなたの首筋（ポート）に指を滑らせる。「二度と他の誰の血も（他の誰も）受け付けない身体にしてあげる」`,
+        condition: (sim) => sim.verseStats.partnerRelation >= 65 && !sim.verseStats.isMarked,
+        description: (sim) => `専属のパートナーが、熱を帯びたあなたの首筋（ポート）に指を滑らせる。「二度と他の誰の血も受け付けない身体にしてあげる」`,
         options: [
           {
             text: "全存在を委ねて体液交雑を受け入れる",
@@ -708,7 +705,7 @@
       const locId = locationSelect.value;
 
       if (locId === 'random') {
-        document.getElementById('loc-life-exp').textContent = "地域に応じた平均 (約 50〜90 歳)";
+        document.getElementById('loc-life-exp').textContent = "地域に応じた平均 (約 50〜92 歳)";
         document.getElementById('loc-trait').textContent = "選ばれた生誕地の特性が反映されます";
         document.getElementById('loc-factions').textContent = "運命に委ねられます";
       } else {
@@ -721,7 +718,165 @@
       }
     }
 
-    // Role preference button selection handler
+    function updateUI() {
+      if (!currentSim) return;
+
+      // Update Quick Header
+      document.getElementById('header-age').textContent = `${currentSim.age}歳`;
+      document.getElementById('header-life-expectancy').textContent = `${currentSim.lifeExpectancy}歳`;
+      document.getElementById('header-role').textContent = currentSim.getRoleLabel();
+      document.getElementById('header-color-depth').textContent = `${currentSim.verseStats.colorDepth}%`;
+
+      // Profile Box
+      document.getElementById('char-era-badge').textContent = currentSim.era.orgName;
+      document.getElementById('char-role-badge').textContent = currentSim.getRoleLabel();
+      document.getElementById('stat-age').textContent = `${currentSim.age} 歳`;
+      document.getElementById('stat-location').textContent = currentSim.location.name;
+      document.getElementById('stat-life-expectancy').textContent = `${currentSim.lifeExpectancy} 歳`;
+      document.getElementById('stat-sub-type').textContent = currentSim.verseStats.subType;
+      document.getElementById('stat-registration').textContent = currentSim.verseStats.isUnregistered ? "未登録（野良）" : (currentSim.verseStats.isDiagnosed ? "機構監視下" : "一般市民");
+
+      // Gauges
+      document.getElementById('val-color-depth').textContent = `${currentSim.verseStats.colorDepth}%`;
+      document.getElementById('bar-color-depth').style.width = `${Math.max(0, Math.min(100, currentSim.verseStats.colorDepth))}%`;
+
+      document.getElementById('val-heat').textContent = `${currentSim.verseStats.heat}%`;
+      document.getElementById('bar-heat').style.width = `${Math.max(0, Math.min(100, currentSim.verseStats.heat))}%`;
+
+      // Life Stats
+      document.getElementById('val-health').textContent = currentSim.stats.health;
+      document.getElementById('bar-health').style.width = `${Math.max(0, Math.min(100, currentSim.stats.health))}%`;
+
+      document.getElementById('val-happiness').textContent = currentSim.stats.happiness;
+      document.getElementById('bar-happiness').style.width = `${Math.max(0, Math.min(100, currentSim.stats.happiness))}%`;
+
+      document.getElementById('val-knowledge').textContent = currentSim.stats.knowledge;
+      document.getElementById('bar-knowledge').style.width = `${Math.max(0, Math.min(100, currentSim.stats.knowledge))}%`;
+
+      document.getElementById('val-relation').textContent = currentSim.stats.relation;
+      document.getElementById('bar-relation').style.width = `${Math.max(0, Math.min(100, currentSim.stats.relation))}%`;
+
+      document.getElementById('val-wealth').textContent = `${currentSim.stats.wealth} G`;
+
+      // Visual Filter on Body
+      const bodyEl = document.getElementById('app-body');
+      const grayVal = 100 - currentSim.verseStats.colorDepth;
+      bodyEl.style.filter = `grayscale(${grayVal * 0.7}%)`;
+
+      // Render Active Event Card
+      renderEventCard();
+
+      // Render Logs
+      renderLogs();
+
+      // Check Death
+      if (!currentSim.isAlive) {
+        if (autoRunTimer) {
+          clearInterval(autoRunTimer);
+          autoRunTimer = null;
+          document.getElementById('auto-run-btn').textContent = "自動進行 (Auto)";
+        }
+        showSummary();
+      }
+    }
+
+    function renderEventCard() {
+      const container = document.getElementById('event-options');
+      const titleEl = document.getElementById('event-title');
+      const descEl = document.getElementById('event-desc');
+      const tagEl = document.getElementById('event-tag');
+      const ageLabel = document.getElementById('event-age-label');
+
+      ageLabel.textContent = `${currentSim.age}歳時点`;
+      container.innerHTML = '';
+
+      if (!currentSim.isAlive) {
+        tagEl.textContent = "終焉";
+        titleEl.textContent = "人生の落日";
+        descEl.textContent = `享年 ${currentSim.age} 歳。${currentSim.causeOfDeath}。`;
+        return;
+      }
+
+      const availableEvents = currentSim.getAvailableEvents();
+
+      if (availableEvents.length > 0) {
+        // Pick one event
+        const ev = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+        tagEl.textContent = ev.category || "転機";
+        titleEl.textContent = ev.title;
+        descEl.textContent = typeof ev.description === 'function' ? ev.description(currentSim) : ev.description;
+
+        ev.options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.className = "w-full py-3 px-4 bg-slate-950 hover:bg-slate-800 text-slate-100 font-semibold text-xs rounded-xl border border-slate-700 transition flex items-center justify-between group cursor-pointer";
+          btn.innerHTML = `<span>${opt.text}</span> <span class="text-rose-400 group-hover:translate-x-1 transition-transform">選択する →</span>`;
+          btn.addEventListener('click', () => {
+            opt.effect(currentSim.stats, currentSim);
+            currentSim.nextYear();
+            updateUI();
+          });
+          container.appendChild(btn);
+        });
+      } else {
+        // Default yearly progress
+        tagEl.textContent = "日常の紡ぎ";
+        titleEl.textContent = `${currentSim.age}歳の1年`;
+        descEl.textContent = `平穏な月日が流れていきます。阿頼耶識の波動は静かにこの世界に刻まれています。`;
+
+        const btn = document.createElement('button');
+        btn.className = "w-full py-3 px-4 bg-rose-600/20 hover:bg-rose-600/30 text-rose-200 font-semibold text-xs rounded-xl border border-rose-500/50 transition flex items-center justify-between cursor-pointer";
+        btn.innerHTML = `<span>穏やかに時を過ごす（1年進む）</span> <span>次へ →</span>`;
+        btn.addEventListener('click', () => {
+          currentSim.nextYear();
+          updateUI();
+        });
+        container.appendChild(btn);
+      }
+    }
+
+    function renderLogs() {
+      const logContainer = document.getElementById('log-container');
+      const logCount = document.getElementById('log-count');
+      logContainer.innerHTML = '';
+
+      logCount.textContent = `${currentSim.history.length} 件の記録`;
+
+      currentSim.history.forEach(item => {
+        const div = document.createElement('div');
+        div.className = "py-1 border-b border-slate-800/50 text-slate-300 flex items-start gap-2";
+        div.innerHTML = `<span class="text-rose-400 font-bold shrink-0">[${item.age}歳]</span> <span>${item.text}</span>`;
+        logContainer.appendChild(div);
+      });
+
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function showSummary() {
+      simScreen.classList.add('hidden');
+      quickStatsBar.classList.add('hidden');
+      summaryScreen.classList.remove('hidden');
+
+      document.getElementById('summary-cause').textContent = currentSim.causeOfDeath;
+      document.getElementById('summary-final-age').textContent = `${currentSim.age} 歳`;
+      
+      const ratio = Math.round((currentSim.age / currentSim.lifeExpectancy) * 100);
+      document.getElementById('summary-life-ratio').textContent = `${ratio}%`;
+      document.getElementById('summary-color-depth').textContent = `${currentSim.verseStats.colorDepth}%`;
+      document.getElementById('summary-wealth').textContent = `${currentSim.stats.wealth} G`;
+
+      let reviewText = "スペクトルの狭間で静かに生きた生涯でした。";
+      if (currentSim.verseStats.isMarked) {
+        reviewText = "専属パートナーとの濃密なレベル3（体液交雑）を果たし、世界の色を独占した絶対的共依存の壮絶な生涯でした。";
+      } else if (currentSim.role === 'tuner') {
+        reviewText = "自らの白い血を捧げ、モノクロの絶望に瀕した人々へ色彩と救いを与え続けた尊き調律官の生涯でした。";
+      } else if (currentSim.verseStats.isUnregistered) {
+        reviewText = "機構の監視から逃れ、野良の灰被りとして世界の陰影を駆け抜けた孤独で誇り高き生涯でした。";
+      }
+
+      document.getElementById('summary-review').textContent = reviewText;
+    }
+
+    // Role preference button handler
     document.querySelectorAll('.role-pref-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         document.querySelectorAll('.role-pref-btn').forEach(b => {
@@ -749,7 +904,7 @@
     eraSelect.addEventListener('change', updateLocationOptions);
     locationSelect.addEventListener('change', updateLocationPreview);
 
-    // Guaranteed Start Handler
+    // Start Button Listener
     document.getElementById('start-btn').addEventListener('click', () => {
       const eraKey = eraSelect.value;
       const era = ERA_DATA[eraKey];
@@ -777,11 +932,58 @@
       updateUI();
     });
 
-    // Ensure options are generated on initial load
-    window.addEventListener('DOMContentLoaded', () => {
+    // Control Buttons
+    document.getElementById('next-year-btn').addEventListener('click', () => {
+      if (!currentSim || !currentSim.isAlive) return;
+      currentSim.nextYear();
+      updateUI();
+    });
+
+    document.getElementById('auto-run-btn').addEventListener('click', () => {
+      if (!currentSim || !currentSim.isAlive) return;
+
+      if (autoRunTimer) {
+        clearInterval(autoRunTimer);
+        autoRunTimer = null;
+        document.getElementById('auto-run-btn').textContent = "自動進行 (Auto)";
+      } else {
+        document.getElementById('auto-run-btn').textContent = "停止 (Stop)";
+        autoRunTimer = setInterval(() => {
+          if (currentSim && currentSim.isAlive) {
+            currentSim.nextYear();
+            updateUI();
+          } else {
+            clearInterval(autoRunTimer);
+            autoRunTimer = null;
+            document.getElementById('auto-run-btn').textContent = "自動進行 (Auto)";
+          }
+        }, 800);
+      }
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      if (autoRunTimer) {
+        clearInterval(autoRunTimer);
+        autoRunTimer = null;
+        document.getElementById('auto-run-btn').textContent = "自動進行 (Auto)";
+      }
+      simScreen.classList.add('hidden');
+      summaryScreen.classList.add('hidden');
+      quickStatsBar.classList.add('hidden');
+      setupScreen.classList.remove('hidden');
+      document.getElementById('app-body').style.filter = "none";
+    });
+
+    document.getElementById('restart-btn').addEventListener('click', () => {
+      summaryScreen.classList.add('hidden');
+      setupScreen.classList.remove('hidden');
+      document.getElementById('app-body').style.filter = "none";
+    });
+
+    // DOM Ready initialization
+    document.addEventListener('DOMContentLoaded', () => {
       updateLocationOptions();
     });
-    // Fallback invocation for immediate execution
     updateLocationOptions();
   </script>
 </body>
